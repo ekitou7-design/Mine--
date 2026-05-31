@@ -167,6 +167,15 @@ export const DailyPlanView: React.FC<DailyPlanViewProps> = ({
     handleUpdateDailyPlan({ ...dailyPlan, todos: updatedTodo });
   };
 
+  const handleTodoShowInChange = (id: string, scope: 'week' | 'month' | 'year', checked: boolean) => {
+    const updatedTodo = dailyPlan.todos.map(item =>
+      item.id === id
+        ? { ...item, showIn: { ...(item.showIn || {}), [scope]: checked } }
+        : item
+    );
+    handleUpdateDailyPlan({ ...dailyPlan, todos: updatedTodo });
+  };
+
   const handleDeleteTodo = (id: string) => {
     const updatedTodo = dailyPlan.todos.filter(item => item.id !== id);
     handleUpdateDailyPlan({ ...dailyPlan, todos: updatedTodo });
@@ -183,6 +192,7 @@ export const DailyPlanView: React.FC<DailyPlanViewProps> = ({
   // Choose quote based on a simple math modulo of the current day to inspire focus
   const dayStrNum = parseInt(selectedDateStr.split('-')[2]) || 0;
   const activeQuote = SERENE_QUOTES[dayStrNum % SERENE_QUOTES.length];
+  const dayCalendarEvents = state.calendarEvents[selectedDateStr] || [];
   const scheduleHours = Array.from(new Set([
     ...DEFAULT_SCHEDULE_HOURS,
     ...dailyPlan.schedule.map((item) => item.time)
@@ -235,6 +245,19 @@ export const DailyPlanView: React.FC<DailyPlanViewProps> = ({
             <p className="text-[10px] font-mono text-tertiary uppercase tracking-widest mt-0.5">
               Techo Ledger NO. {selectedDateStr.replace(/-/g, '/')}
             </p>
+            {dayCalendarEvents.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {dayCalendarEvents.map((event) => (
+                  <span
+                    key={event.id}
+                    className="px-2 py-0.5 rounded-sm border border-tertiary-fixed bg-surface-container-low text-[9px] font-medium text-tertiary"
+                    title={event.source}
+                  >
+                    {event.title}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -656,40 +679,64 @@ export const DailyPlanView: React.FC<DailyPlanViewProps> = ({
                 </p>
               ) : (
                 (dailyPlan.todos || []).map((todo) => (
-                  <div key={todo.id} className="flex items-center justify-between group gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleToggleTodo(todo.id)}
-                      className="flex items-center gap-2.5 cursor-pointer select-none"
-                      title={isZh ? '切换完成状态' : 'Toggle complete'}
-                    >
-                      {/* Checkboxes border */}
-                      <div className={`paper-checkbox w-4 h-4 border border-secondary flex items-center justify-center transition-all shrink-0 ${
-                        todo.completed ? 'bg-secondary-container/60' : 'bg-transparent'
-                      }`}>
-                        {todo.completed && (
-                          <span className="text-secondary font-mono text-[9px] font-bold select-none leading-none">X</span>
-                        )}
-                      </div>
-                    </button>
+                  <div key={todo.id} className="group space-y-1.5 border-b border-dashed border-tertiary-fixed/30 pb-2 last:border-b-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleTodo(todo.id)}
+                        className="flex items-center gap-2.5 cursor-pointer select-none"
+                        title={isZh ? '切换完成状态' : 'Toggle complete'}
+                      >
+                        <div className={`paper-checkbox w-4 h-4 border border-secondary flex items-center justify-center transition-all shrink-0 ${
+                          todo.completed ? 'bg-secondary-container/60' : 'bg-transparent'
+                        }`}>
+                          {todo.completed && (
+                            <span className="text-secondary font-mono text-[9px] font-bold select-none leading-none">X</span>
+                          )}
+                        </div>
+                      </button>
 
-                    <input
-                      type="text"
-                      value={todo.text}
-                      onChange={(e) => handleTodoTextChange(todo.id, e.target.value)}
-                      className={`paper-input flex-grow bg-transparent border-none border-b border-transparent hover:border-tertiary-fixed/40 focus:border-primary focus:ring-0 p-0.5 text-xs ${
-                        todo.completed 
-                          ? 'line-through text-on-surface-variant/40 italic' 
-                          : 'text-on-surface'
-                      }`}
-                    />
-                    
-                    <button
-                      onClick={() => handleDeleteTodo(todo.id)}
-                      className="opacity-0 group-hover:opacity-100 p-0.5 text-tertiary hover:text-error transition-all shrink-0 cursor-pointer"
-                    >
-                      <Trash2 size={11} />
-                    </button>
+                      <input
+                        type="text"
+                        value={todo.text}
+                        onChange={(e) => handleTodoTextChange(todo.id, e.target.value)}
+                        className={`paper-input flex-grow bg-transparent border-none border-b border-transparent hover:border-tertiary-fixed/40 focus:border-primary focus:ring-0 p-0.5 text-xs ${
+                          todo.completed 
+                            ? 'line-through text-on-surface-variant/40 italic' 
+                            : 'text-on-surface'
+                        }`}
+                      />
+                      
+                      <button
+                        onClick={() => handleDeleteTodo(todo.id)}
+                        className="opacity-0 group-hover:opacity-100 p-0.5 text-tertiary hover:text-error transition-all shrink-0 cursor-pointer"
+                      >
+                        <Trash2 size={11} />
+                      </button>
+                    </div>
+
+                    <div className="pl-6">
+                      <p className="text-[9px] text-tertiary mb-1">{isZh ? '在这些计划页中显示' : 'Show in these plan pages'}</p>
+                      <div className="flex flex-wrap gap-3 text-[10px] text-on-surface-variant">
+                        {(['week', 'month', 'year'] as const).map((scope) => (
+                          <label key={scope} className="flex items-center gap-1.5 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(todo.showIn?.[scope])}
+                              onChange={(e) => handleTodoShowInChange(todo.id, scope, e.target.checked)}
+                              className="accent-primary"
+                            />
+                            <span>
+                              {scope === 'week'
+                                ? (isZh ? '本周计划' : 'Week')
+                                : scope === 'month'
+                                  ? (isZh ? '本月计划' : 'Month')
+                                  : (isZh ? '年度计划' : 'Year')}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 ))
               )}

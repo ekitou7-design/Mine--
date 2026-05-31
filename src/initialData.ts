@@ -207,6 +207,7 @@ export const getInitialState = (): PlannerData => {
     },
     weekPlans: {},
     dailyPlans,
+    calendarEvents: {},
     settings: {
       themeColor: '#4c5d73',
       paperStyle: 'grid',

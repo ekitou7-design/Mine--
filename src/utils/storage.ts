@@ -1,5 +1,5 @@
 import { createEmptyDailyPlan, createEmptyMonthPlan, createEmptyWeekPlan, createEmptyYearPlan, getInitialState } from '../initialData';
-import { DailyPlan, EisenhowerMatrix, HabitItem, MonthPlan, PlannerData, ScheduleItem, TodoItem, WeekPlan, YearPlan } from '../types';
+import { CalendarEvent, DailyPlan, EisenhowerMatrix, HabitItem, MonthPlan, PlannerData, ScheduleItem, TodoItem, WeekPlan, YearPlan } from '../types';
 
 export const PLANNER_STORAGE_KEY = 'mine_planner_data_v2';
 const LEGACY_STORAGE_KEY = 'mine_planner_data_v1';
@@ -17,13 +17,18 @@ const normalizeTodos = (items: unknown, prefix: string): TodoItem[] => {
   if (!Array.isArray(items)) return [];
   return items.map((item, index) => {
     if (typeof item === 'string') {
-      return { id: `${prefix}_${index}`, text: item, completed: false };
+      return { id: `${prefix}_${index}`, text: item, completed: false, showIn: {} };
     }
     const value = item as Partial<TodoItem>;
     return {
       id: value.id || `${prefix}_${index}`,
       text: value.text || '',
       completed: Boolean(value.completed),
+      showIn: {
+        week: Boolean(value.showIn?.week),
+        month: Boolean(value.showIn?.month),
+        year: Boolean(value.showIn?.year),
+      },
     };
   });
 };
@@ -162,6 +167,31 @@ const normalizeYearPlan = (value: unknown, legacy: unknown, year: string): YearP
   };
 };
 
+const normalizeCalendarEvents = (value: unknown): Record<string, CalendarEvent[]> => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).map(([dateKey, events]) => [
+      dateKey,
+      Array.isArray(events)
+        ? events.map((event, index) => {
+          const raw = event as Partial<CalendarEvent>;
+          return {
+            id: raw.id || `event_${dateKey}_${index}`,
+            title: raw.title || '',
+            date: raw.date || dateKey,
+            endDate: raw.endDate,
+            type: raw.type || 'event',
+            source: raw.source,
+            allDay: raw.allDay !== false,
+            color: raw.color,
+          };
+        }).filter((event) => event.title)
+        : [],
+    ])
+  );
+};
+
 export const normalizePlannerData = (raw: unknown): PlannerData => {
   const fallback = getInitialState();
   if (!raw || typeof raw !== 'object') return fallback;
@@ -181,6 +211,7 @@ export const normalizePlannerData = (raw: unknown): PlannerData => {
   const monthSource = value.monthPlans || value.monthlyPlans || {};
   const weekSource = value.weekPlans || {};
   const dailySource = value.dailyPlans || {};
+  const calendarEventSource = value.calendarEvents || {};
 
   const yearPlans = Object.fromEntries(
     Array.from(yearKeys).map((year) => [year, normalizeYearPlan(value.yearPlans?.[year], value, year)])
@@ -194,12 +225,14 @@ export const normalizePlannerData = (raw: unknown): PlannerData => {
   const dailyPlans = Object.fromEntries(
     Object.entries(dailySource).map(([dateKey, plan]) => [dateKey, normalizeDailyPlan(plan)])
   );
+  const calendarEvents = normalizeCalendarEvents(calendarEventSource);
 
   return {
     yearPlans: { ...fallback.yearPlans, ...yearPlans },
     monthPlans: { ...fallback.monthPlans, ...monthPlans },
     weekPlans: { ...fallback.weekPlans, ...weekPlans },
     dailyPlans: { ...fallback.dailyPlans, ...dailyPlans },
+    calendarEvents: { ...fallback.calendarEvents, ...calendarEvents },
     settings: {
       themeColor: value.settings?.themeColor || fallback.settings.themeColor,
       paperStyle: value.settings?.paperStyle || fallback.settings.paperStyle,
@@ -217,6 +250,7 @@ export const isPlannerDataLike = (raw: unknown): boolean => {
     value.monthPlans ||
     value.weekPlans ||
     value.dailyPlans ||
+    value.calendarEvents ||
     value.settings ||
     value.yearlyGoals ||
     value.monthlyPlans
@@ -275,6 +309,7 @@ export const newTodo = (text: string): TodoItem => ({
   id: createId('todo'),
   text,
   completed: false,
+  showIn: {},
 });
 
 export const newScheduleItem = (time: string, text: string): ScheduleItem => ({

@@ -3,6 +3,7 @@ import { PlannerSettings, PlannerState } from '../types';
 import { isPlannerDataLike, normalizePlannerData } from '../utils/storage';
 import { formatMonthKey, getWeekKey } from '../utils/calendar';
 import { exportDailyMarkdown, exportMonthMarkdown, exportWeekMarkdown, exportYearMarkdown } from '../utils/markdownExport';
+import { mergeCalendarEvents, parseIcsCalendarEvents } from '../utils/icsImport';
 import { X, Copy, Check, RotateCcw, Upload, FileText, Globe, Download } from 'lucide-react';
 
 interface SettingsModalProps {
@@ -28,6 +29,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [importText, setImportText] = useState('');
   const [importError, setImportError] = useState('');
   const [importSuccess, setImportSuccess] = useState(false);
+  const [calendarImportMessage, setCalendarImportMessage] = useState('');
 
   if (!isOpen) return null;
 
@@ -80,6 +82,38 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         [key]: value,
       },
     });
+  };
+
+  const handleImportIcs = async (file: File | null) => {
+    if (!file) return;
+    try {
+      setCalendarImportMessage('');
+      const text = await file.text();
+      const parsedEvents = parseIcsCalendarEvents(text, file.name);
+      const eventCount = Object.values(parsedEvents).reduce((sum, events) => sum + events.length, 0);
+
+      if (eventCount === 0) {
+        setCalendarImportMessage(isZh ? '没有在文件中找到可导入的事件。' : 'No importable events found in this file.');
+        return;
+      }
+
+      onUpdateState({
+        ...state,
+        calendarEvents: mergeCalendarEvents(state.calendarEvents, parsedEvents),
+      });
+      setCalendarImportMessage(isZh ? `已导入 ${eventCount} 个日历事件。` : `Imported ${eventCount} calendar events.`);
+    } catch (error) {
+      console.error(error);
+      setCalendarImportMessage(isZh ? 'ICS 导入失败，请检查文件格式。' : 'ICS import failed. Please check the file format.');
+    }
+  };
+
+  const handleClearCalendarEvents = () => {
+    if (!window.confirm(isZh ? '确定要清空所有外部日历事件吗？日计划待办不会受影响。' : 'Clear all external calendar events? Daily todos will not be affected.')) {
+      return;
+    }
+    onUpdateState({ ...state, calendarEvents: {} });
+    setCalendarImportMessage(isZh ? '已清空外部日历事件。' : 'External calendar events cleared.');
   };
 
   const isZh = state.settings.language === 'zh';
@@ -185,6 +219,45 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <span>{copied ? (isZh ? '复制成功！' : 'Copied!') : (isZh ? '复制数据 JSON' : 'Copy State JSON')}</span>
               </button>
             </div>
+          </div>
+
+          <hr className="border-tertiary-fixed" />
+
+          {/* Section 1.5: Calendar Events */}
+          <div className="space-y-3">
+            <h4 className="font-sans text-xs font-bold uppercase tracking-wider text-secondary">
+              {isZh ? '导入日历事件 / 节假日' : 'Import Calendar Events / Holidays'}
+            </h4>
+            <p className="text-xs text-on-surface-variant/80 leading-relaxed">
+              {isZh
+                ? '你可以从 Apple Calendar、Google Calendar 或其他日历导出 .ics 文件后导入。当前版本只保存在本地浏览器，不保存 Apple ID 或密码，不接 iCloud 登录，也不接 CalDAV。'
+                : 'Export an .ics file from Apple Calendar, Google Calendar, or another calendar and import it here. This version only stores events locally in your browser. No Apple ID, password, iCloud login, or CalDAV connection is used.'}
+            </p>
+            <div className="flex flex-col md:flex-row gap-2">
+              <label className="flex items-center justify-center gap-2 px-4 py-2 border border-tertiary-fixed hover:border-primary bg-surface-container-low hover:bg-surface-container text-xs rounded transition-all font-medium cursor-pointer">
+                <Upload size={14} />
+                <span>{isZh ? '选择 .ics 文件导入' : 'Choose .ics file'}</span>
+                <input
+                  type="file"
+                  accept=".ics,text/calendar"
+                  className="hidden"
+                  onChange={(e) => {
+                    handleImportIcs(e.target.files?.[0] || null);
+                    e.currentTarget.value = '';
+                  }}
+                />
+              </label>
+              <button
+                onClick={handleClearCalendarEvents}
+                className="flex items-center justify-center gap-2 px-4 py-2 border border-error/40 hover:bg-error hover:text-white text-xs rounded transition-all font-medium text-error"
+              >
+                <RotateCcw size={14} />
+                <span>{isZh ? '清空外部日历事件' : 'Clear calendar events'}</span>
+              </button>
+            </div>
+            {calendarImportMessage && (
+              <p className="text-xs text-tertiary font-medium">{calendarImportMessage}</p>
+            )}
           </div>
 
           <hr className="border-tertiary-fixed" />

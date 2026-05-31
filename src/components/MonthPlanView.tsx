@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { PlannerState, MonthPlan } from '../types';
 import { generateCalendarGrid, getTodayDateKey, MONTHS_EN, MONTHS_ZH, DAYS_EN, DAYS_ZH } from '../utils/calendar';
 import { ensureMonthPlan, newTodo } from '../utils/storage';
-import { ChevronLeft, ChevronRight, HelpCircle, Check, Plus, Trash2, Calendar, Target, CheckSquare, Edit, Notebook, Paperclip } from 'lucide-react';
+import { getDailyTodosForMonth } from '../utils/promotedTodos';
+import { ChevronLeft, ChevronRight, HelpCircle, Check, Plus, Trash2, Calendar, Target, CheckSquare, Edit, Notebook, Paperclip, ClipboardList } from 'lucide-react';
 
 interface MonthPlanViewProps {
   state: PlannerState;
@@ -43,6 +44,7 @@ export const MonthPlanView: React.FC<MonthPlanViewProps> = ({
 
   // Get monthly plan from state, or load default empty one if missing
   const monthlyPlan: MonthPlan = ensureMonthPlan(state, monthKey);
+  const promotedTodos = getDailyTodosForMonth(state.dailyPlans, monthKey);
 
   // State for adding events
   const [selectedCellDateKey, setSelectedCellDateKey] = useState<string | null>(null);
@@ -250,7 +252,8 @@ export const MonthPlanView: React.FC<MonthPlanViewProps> = ({
             {/* Individual Day Grids */}
             {gridCells.map((cell, cIdx) => {
               const parts = cell.dateKey.split('-');
-              const hasEvents = monthlyPlan.dayNotes[cell.dateKey] && cell.isCurrentMonth;
+              const hasDayNote = monthlyPlan.dayNotes[cell.dateKey] && cell.isCurrentMonth;
+              const cellCalendarEvents = state.calendarEvents[cell.dateKey] || [];
               const isSunday = cIdx % 7 === 0;
               const isSaturday = cIdx % 7 === 6;
               const isSelectedToday = cell.dateKey === selectedDateStr;
@@ -288,12 +291,22 @@ export const MonthPlanView: React.FC<MonthPlanViewProps> = ({
 
                   {/* Body: Events text markup list mimicking handwriting */}
                   <div className="flex-grow mt-1.5 flex flex-col justify-end overflow-hidden">
-                    {hasEvents && (
+                    {hasDayNote && (
                       <div className="bg-primary-container/10 border-l border-primary px-1 py-0.5 rounded-sm overflow-hidden text-ellipsis whitespace-nowrap">
                         <span className="font-sans text-[9px] md:text-[10px] text-primary select-none font-medium leading-tight">
                           {monthlyPlan.dayNotes[cell.dateKey]}
                         </span>
                       </div>
+                    )}
+                    {cellCalendarEvents.slice(0, 2).map((event) => (
+                      <div key={event.id} className="mt-1 bg-surface-container-low border border-tertiary-fixed/60 px-1 py-0.5 rounded-sm overflow-hidden text-ellipsis whitespace-nowrap">
+                        <span className="font-sans text-[8px] md:text-[9px] text-tertiary select-none leading-tight">
+                          {event.title}
+                        </span>
+                      </div>
+                    ))}
+                    {cellCalendarEvents.length > 2 && (
+                      <span className="text-[8px] text-tertiary mt-0.5">+{cellCalendarEvents.length - 2}</span>
                     )}
                   </div>
 
@@ -336,6 +349,34 @@ export const MonthPlanView: React.FC<MonthPlanViewProps> = ({
               </div>
             </div>
           )}
+
+          <div className="bg-surface-container-lowest rounded-lg border border-tertiary-fixed p-6 shadow-sm space-y-4 paper-panel">
+            <h3 className="font-serif text-sm font-bold text-primary flex items-center gap-1.5 uppercase tracking-wider">
+              <ClipboardList size={14} className="text-secondary" />
+              <span>{isZh ? '本月重要事项' : 'Important Monthly Items'}</span>
+            </h3>
+            <div className="space-y-2.5 max-h-[180px] overflow-y-auto pr-1">
+              {promotedTodos.length === 0 ? (
+                <p className="text-xs text-tertiary italic text-center py-4">
+                  {isZh ? '本月还没有从日计划标记的重要事项' : 'No important daily items marked for this month yet.'}
+                </p>
+              ) : promotedTodos.map(({ dateKey, todo }) => (
+                <button
+                  key={`${dateKey}-${todo.id}`}
+                  onClick={() => onNavigateToDay(dateKey)}
+                  className="w-full flex items-center gap-2 text-left hover:bg-surface-container-low/50 rounded px-1 py-1 transition-colors"
+                >
+                  <span className={`paper-checkbox w-4 h-4 border border-secondary flex items-center justify-center shrink-0 ${todo.completed ? 'bg-secondary-container/60' : 'bg-transparent'}`}>
+                    {todo.completed && <span className="text-secondary font-mono text-[9px] font-bold leading-none">X</span>}
+                  </span>
+                  <span className="font-mono text-[10px] text-tertiary shrink-0">{dateKey.slice(5)}</span>
+                  <span className={`text-xs ${todo.completed ? 'line-through text-on-surface-variant/45 italic' : 'text-on-surface'}`}>
+                    {todo.text}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
           
           {/* Section 1: This month focus points bullets */}
           <div className="bg-surface-container-lowest rounded-lg border border-tertiary-fixed p-6 shadow-sm space-y-4 paper-panel">

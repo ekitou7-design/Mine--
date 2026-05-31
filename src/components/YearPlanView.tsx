@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { PlannerState, ImportantDate } from '../types';
+import { CalendarEvent, PlannerState, ImportantDate } from '../types';
 import { generateCalendarGrid, MONTHS_EN, MONTHS_ZH, DAYS_EN, DAYS_ZH } from '../utils/calendar';
 import { ensureYearPlan, newTodo } from '../utils/storage';
+import { getDailyTodosForYear } from '../utils/promotedTodos';
 import { Calendar, Award, Compass, MessageSquare, Plus, Trash2, CalendarCheck } from 'lucide-react';
 
 interface YearPlanViewProps {
@@ -29,6 +30,11 @@ export const YearPlanView: React.FC<YearPlanViewProps> = ({
   const review = yearPlan.review;
   const completedGoalsCount = goals.filter((goal) => goal.completed).length;
   const totalGoalsCount = goals.length;
+  const promotedTodos = getDailyTodosForYear(state.dailyPlans, selectedYear);
+  const yearCalendarEvents = Object.entries(state.calendarEvents)
+    .filter(([dateKey]) => dateKey.startsWith(`${selectedYear}-`))
+    .flatMap(([dateKey, events]) => ((events || []) as CalendarEvent[]).map((event) => ({ dateKey, event })))
+    .sort((a, b) => a.dateKey.localeCompare(b.dateKey));
 
   const [newDate, setNewDate] = useState('');
   const [newTitle, setNewTitle] = useState('');
@@ -314,6 +320,61 @@ export const YearPlanView: React.FC<YearPlanViewProps> = ({
       </div>
 
       {/* Bottom section: Split Milestone Dates & Reflection Review */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-6 bg-surface-container-lowest rounded-lg p-6 md:p-8 border border-tertiary-fixed shadow-[0px_4px_20px_rgba(0,0,0,0.02)] paper-panel">
+          <div className="flex items-center gap-2 mb-5">
+            <CalendarCheck size={18} className="text-secondary" />
+            <h3 className="font-serif text-lg font-bold text-primary">
+              {isZh ? '年度重要事项' : 'Important Yearly Items'}
+            </h3>
+          </div>
+          <div className="space-y-2.5 max-h-[260px] overflow-y-auto pr-1">
+            {promotedTodos.length === 0 ? (
+              <p className="text-xs text-tertiary italic text-center py-6">
+                {isZh ? '今年还没有从日计划标记的重要事项' : 'No important daily items marked for this year yet.'}
+              </p>
+            ) : promotedTodos.map(({ dateKey, todo }) => (
+              <button
+                key={`${dateKey}-${todo.id}`}
+                onClick={() => onNavigateToDay(dateKey)}
+                className="w-full flex items-center gap-2 text-left hover:bg-surface-container-low/50 rounded px-1 py-1 transition-colors"
+              >
+                <span className={`paper-checkbox w-4 h-4 border border-secondary flex items-center justify-center shrink-0 ${todo.completed ? 'bg-secondary-container/60' : 'bg-transparent'}`}>
+                  {todo.completed && <span className="text-secondary font-mono text-[9px] font-bold leading-none">X</span>}
+                </span>
+                <span className="font-mono text-[10px] text-tertiary shrink-0">{dateKey}</span>
+                <span className={`text-xs ${todo.completed ? 'line-through text-on-surface-variant/45 italic' : 'text-on-surface'}`}>
+                  {todo.text}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="lg:col-span-6 bg-surface-container-lowest rounded-lg p-6 md:p-8 border border-tertiary-fixed shadow-[0px_4px_20px_rgba(0,0,0,0.02)] paper-panel">
+          <div className="flex items-center gap-2 mb-5">
+            <Calendar size={18} className="text-primary" />
+            <h3 className="font-serif text-lg font-bold text-primary">
+              {isZh ? '年度日历事件 / 节假日' : 'Yearly Calendar Events / Holidays'}
+            </h3>
+          </div>
+          <div className="space-y-2.5 max-h-[260px] overflow-y-auto pr-1">
+            {yearCalendarEvents.length === 0 ? (
+              <p className="text-xs text-tertiary italic text-center py-6">
+                {isZh ? '今年还没有导入日历事件或节假日' : 'No calendar events imported for this year yet.'}
+              </p>
+            ) : yearCalendarEvents.map(({ dateKey, event }) => (
+              <div key={`${dateKey}-${event.id}`} className="flex items-center gap-2 border-b border-dashed border-tertiary-fixed/40 pb-1.5">
+                <span className="font-mono text-[10px] text-tertiary shrink-0">{dateKey}</span>
+                <span className="px-2 py-0.5 rounded-sm border border-tertiary-fixed bg-surface-container-low text-[10px] text-tertiary">
+                  {event.title}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
         {/* Milestone lists */}

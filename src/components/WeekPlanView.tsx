@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { PlannerState, WeekPlan } from '../types';
 import { addWeeksToDateKey, formatFullChineseDate, formatFullEnglishDate, getTodayDateKey, getWeekDatesFromDateKey, getWeekKey } from '../utils/calendar';
 import { ensureWeekPlan, newHabit, newTodo } from '../utils/storage';
+import { getDailyTodosForWeek } from '../utils/promotedTodos';
 import { CalendarDays, CheckSquare, ChevronLeft, ChevronRight, ClipboardList, Heart, Plus, Target, Trash2 } from 'lucide-react';
 
 interface WeekPlanViewProps {
@@ -28,6 +29,7 @@ export const WeekPlanView: React.FC<WeekPlanViewProps> = ({
   const weekKey = getWeekKey(selectedDateStr);
   const weekDates = getWeekDatesFromDateKey(selectedDateStr);
   const weekPlan: WeekPlan = ensureWeekPlan(state, weekKey);
+  const promotedTodos = getDailyTodosForWeek(state.dailyPlans, selectedDateStr);
 
   const [newTodoInput, setNewTodoInput] = useState('');
   const [newHabitInput, setNewHabitInput] = useState('');
@@ -198,6 +200,19 @@ export const WeekPlanView: React.FC<WeekPlanViewProps> = ({
                         {isZh ? formatFullChineseDate(dateKey).split(' ')[1] : formatFullEnglishDate(dateKey).split(',')[0]}
                       </span>
                     </div>
+                    {(state.calendarEvents[dateKey] || []).length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {(state.calendarEvents[dateKey] || []).map((event) => (
+                          <span
+                            key={event.id}
+                            className="px-1.5 py-0.5 rounded-sm border border-tertiary-fixed bg-surface-container-low text-[9px] text-tertiary"
+                            title={event.source}
+                          >
+                            {event.title}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     <textarea
                       value={weekPlan.days[dateKey] || ''}
                       onChange={(e) => handleDayPlanChange(dateKey, e.target.value)}
@@ -206,6 +221,34 @@ export const WeekPlanView: React.FC<WeekPlanViewProps> = ({
                       className="paper-input w-full text-xs bg-transparent border-none focus:ring-0 resize-none text-on-surface-variant placeholder:opacity-30 leading-6"
                     />
                   </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="space-y-3">
+              <span className="font-sans text-[10px] font-bold text-primary tracking-widest uppercase flex items-center gap-2">
+                <ClipboardList size={12} className="text-secondary" />
+                <span>{isZh ? '来自日计划的重要事项' : 'Important Items From Daily Plans'}</span>
+              </span>
+              <div className="rounded border border-tertiary-fixed/60 bg-surface-container-lowest p-3 space-y-2">
+                {promotedTodos.length === 0 ? (
+                  <p className="text-xs text-tertiary italic py-2">
+                    {isZh ? '本周还没有从日计划标记的重要事项' : 'No important daily items marked for this week yet.'}
+                  </p>
+                ) : promotedTodos.map(({ dateKey, todo }) => (
+                  <button
+                    key={`${dateKey}-${todo.id}`}
+                    onClick={() => onNavigateToDay(dateKey)}
+                    className="w-full flex items-center gap-2 text-left hover:bg-surface-container-low/50 rounded px-1 py-1 transition-colors"
+                  >
+                    <span className={`paper-checkbox w-4 h-4 border border-secondary flex items-center justify-center shrink-0 ${todo.completed ? 'bg-secondary-container/60' : 'bg-transparent'}`}>
+                      {todo.completed && <span className="text-secondary font-mono text-[9px] font-bold leading-none">X</span>}
+                    </span>
+                    <span className="font-mono text-[10px] text-tertiary shrink-0">{dateKey.slice(5)}</span>
+                    <span className={`text-xs ${todo.completed ? 'line-through text-on-surface-variant/45 italic' : 'text-on-surface'}`}>
+                      {todo.text}
+                    </span>
+                  </button>
                 ))}
               </div>
             </section>

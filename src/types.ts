@@ -2,6 +2,11 @@ export interface TodoItem {
   id: string;
   text: string;
   completed: boolean;
+  showIn?: {
+    week?: boolean;
+    month?: boolean;
+    year?: boolean;
+  };
 }
 
 export interface ImportantDate {
@@ -21,6 +26,17 @@ export interface HabitItem {
   text: string;
   completedDates: string[];
 }
+
+export type CalendarEvent = {
+  id: string;
+  title: string;
+  date: string;
+  endDate?: string;
+  type: 'holiday' | 'event' | 'birthday' | 'other';
+  source?: string;
+  allDay?: boolean;
+  color?: string;
+};
 
 export interface EisenhowerMatrix {
   urgentImportant: string[];
@@ -73,6 +89,7 @@ export interface PlannerData {
   monthPlans: Record<string, MonthPlan>;
   weekPlans: Record<string, WeekPlan>;
   dailyPlans: Record<string, DailyPlan>;
+  calendarEvents: Record<string, CalendarEvent[]>;
   settings: PlannerSettings;
   lastSaved: string;
 }
