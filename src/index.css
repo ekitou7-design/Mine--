@@ -1,0 +1,152 @@
+@import "tailwindcss";
+@import "./local-textures.css";
+
+@theme {
+  --color-surface-bright: #fcf9f4;
+  --color-surface-dim: #dcdad5;
+  --color-surface-lowest: #ffffff;
+  --color-surface-low: #f6f3ee;
+  --color-surface-container: #f0ede9;
+  --color-surface-high: #ebe8e3;
+  --color-surface-highest: #e5e2dd;
+  --color-primary: #4c5d73;
+  --color-primary-container: #65768d;
+  --color-on-primary: #ffffff;
+  --color-secondary: #6a5b56;
+  --color-secondary-container: #f0dbd4;
+  --color-on-secondary-container: #6f5f5a;
+  --color-on-surface: #1c1c19;
+  --color-on-surface-variant: #44474c;
+  --color-tertiary: #5f5c55;
+  --color-tertiary-fixed: #e8e2d9;
+  --color-error: #ba1a1a;
+  
+  --font-sans: "system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", sans-serif;
+  --font-serif: "Georgia", "Times New Roman", serif;
+  --font-mono: "SFMono-Regular", "Consolas", "Liberation Mono", monospace;
+}
+
+@utility bg-grid-pattern {
+  background-size: 20px 20px;
+  background-image: 
+    linear-gradient(to right, rgba(76, 93, 115, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(76, 93, 115, 0.04) 1px, transparent 1px);
+}
+
+@layer base {
+  body {
+    background-color: #fcf9f4;
+    color: #1c1c19;
+    font-family: var(--font-sans);
+  }
+}
+
+/* Custom grids and paper aesthetics */
+.grid-paper {
+  background-size: 20px 20px;
+  background-image: 
+    linear-gradient(to right, rgba(76, 93, 115, 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(76, 93, 115, 0.035) 1px, transparent 1px);
+}
+
+.linen-texture {
+  background-color: #fdfaf5;
+  position: relative;
+}
+
+.linen-texture::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(0,0,0,0.015) 1px, transparent 0);
+  background-size: 4px 4px;
+  pointer-events: none;
+}
+
+.spine-effect {
+  background: linear-gradient(to right, #e5e2dd 0%, #ebe8e3 30%, #f0ede9 60%, #b8b5b0 95%, #ffffff 100%);
+  box-shadow: inset -4px 0 10px rgba(0,0,0,0.04);
+}
+
+.notebook-edge {
+  box-shadow: inset 8px 0 12px -8px rgba(0,0,0,0.08), 8px 0 15px -8px rgba(0,0,0,0.05);
+}
+
+.paper-sheet,
+.paper-panel {
+  position: relative;
+  background-color: rgba(253, 250, 245, 0.94);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.9) inset,
+    0 14px 30px rgba(76, 68, 58, 0.055),
+    0 2px 4px rgba(76, 68, 58, 0.035);
+}
+
+.paper-sheet::before,
+.paper-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,0.55),
+    inset 8px 0 18px -16px rgba(76,68,58,0.25),
+    inset -8px 0 18px -16px rgba(76,68,58,0.18);
+}
+
+.paper-input {
+  border-color: rgba(95, 92, 85, 0.28);
+  box-shadow: none;
+}
+
+.paper-input:focus {
+  outline: none;
+  box-shadow: 0 1px 0 rgba(76, 93, 115, 0.45);
+}
+
+.paper-checkbox {
+  position: relative;
+  border-radius: 1px;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.35), rgba(232,226,217,0.08));
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,0.28),
+    0 1px 1px rgba(76,68,58,0.08);
+}
+
+.paper-checkbox::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border: 1px solid rgba(95, 92, 85, 0.08);
+  pointer-events: none;
+}
+
+.paper-app textarea,
+.paper-app input[type="text"],
+.paper-app input[type="time"] {
+  caret-color: var(--color-primary);
+}
+
+[data-paper-style="grid"] .grid-paper,
+[data-paper-style="grid"] .bg-grid-pattern {
+  background-size: 18px 18px;
+  background-image:
+    linear-gradient(to right, rgba(76, 93, 115, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(76, 93, 115, 0.06) 1px, transparent 1px);
+}
+
+[data-paper-style="lined"] .grid-paper,
+[data-paper-style="lined"] .bg-grid-pattern {
+  background-size: 100% 26px;
+  background-image:
+    linear-gradient(to bottom, rgba(76, 93, 115, 0.1) 1px, transparent 1px);
+}
+
+[data-paper-style="blank"] .grid-paper,
+[data-paper-style="blank"] .bg-grid-pattern {
+  background-image:
+    radial-gradient(rgba(76, 68, 58, 0.018) 0.7px, transparent 0.7px);
+  background-size: 5px 5px;
+}

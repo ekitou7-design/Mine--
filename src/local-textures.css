@@ -1,0 +1,16 @@
+.paper-fiber-overlay {
+  background-image:
+    radial-gradient(rgba(28, 28, 25, 0.11) 0.6px, transparent 0.6px),
+    linear-gradient(90deg, rgba(95, 92, 85, 0.05) 1px, transparent 1px),
+    linear-gradient(rgba(95, 92, 85, 0.04) 1px, transparent 1px);
+  background-size: 6px 6px, 34px 34px, 34px 34px;
+}
+
+.local-poster {
+  background:
+    linear-gradient(135deg, rgba(76, 93, 115, 0.2), rgba(240, 219, 212, 0.42)),
+    radial-gradient(circle at 18% 35%, rgba(255, 255, 255, 0.72) 0 12%, transparent 13%),
+    radial-gradient(circle at 75% 30%, rgba(101, 118, 141, 0.22) 0 17%, transparent 18%),
+    repeating-linear-gradient(0deg, rgba(28, 28, 25, 0.025) 0 1px, transparent 1px 7px),
+    #f6f3ee;
+}
